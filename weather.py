@@ -1,16 +1,19 @@
 import os
 import datetime
 import requests
-import collections
+import sqlite3 as lite
 
-# Cities dictionary
-cities = { "New York": '40.663619,-73.938589',
-            "Boston": '42.331960,-71.020173'
+# Connect to database
+con = lite.connect('weather.db')
+cur = con.cursor()
+
+# Cities dictionary - key names here are the same as the city column names in the database
+cities = { "new_york": '40.663619,-73.938589',
+            "boston": '42.331960,-71.020173'
         }
 
-# Build query
+# Build query - https://api.forecast.io/forecast/APIKEY/LATITUDE,LONGITUDE,TIME
 def get_forecast_data(city, request_time):
-	# Build query - https://api.forecast.io/forecast/APIKEY/LATITUDE,LONGITUDE,TIME
 	base = "https://api.forecast.io/forecast/"
 	api_key = os.environ["FORECAST_KEY"] + "/"
 	query = cities[city] + "," + str(request_time)
@@ -18,13 +21,6 @@ def get_forecast_data(city, request_time):
 
 # Get time for 30 days ago
 thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
-
-# Do it all in lists, because I can't figure out the key errors I'm getting for dictionaries
-max_temp_results = {
-	"time_list": [],
-	"New York": [],
-	"Boston": []
-}
 
 # Repeat for 30 days (2 requests per day, one for each city)
 for i in range(30):
@@ -34,13 +30,18 @@ for i in range(30):
 		# Convert to unix time
 		request_time = request_time.strftime("%s")
 
-		# Add to time_list dictionary
-		max_temp_results['time_list'].append(request_time)
+		# Add request time to table
+		with con:
+			cur.execute('INSERT INTO max_temperature (request_time) VALUES (?)', (request_time,))
 
+		# Get max temperature for each city in the cities dictionary
 		for city in cities.keys():
-			# Get city temperature data
+			# Send request using URL built in get_forecast_data
 			r = requests.get(get_forecast_data(city, request_time))
 
-			# Append Boston temp
+			# Pull out the maximum temperature for that day
 			max_temp = r.json()['daily']['data'][0]['temperatureMax']
-			max_temp_results[city].append(max_temp)
+
+			# Add max_temp to database
+			with con:
+				cur.execute('UPDATE max_temperature SET ' + city + ' = ' + str(max_temp) + ' WHERE request_time = ' + request_time + ';')
