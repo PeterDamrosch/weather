@@ -20,7 +20,7 @@ def get_forecast_data(city, request_time):
 thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
 
 # Do it all in lists, because I can't figure out the key errors I'm getting for dictionaries
-temp_results = {
+max_temp_results = {
 	"time_list": [],
 	"New York": [],
 	"Boston": []
@@ -35,7 +35,7 @@ for i in range(30):
 		request_time = request_time.strftime("%s")
 
 		# Add to time_list dictionary
-		temp_results['time_list'].append(request_time)
+		max_temp_results['time_list'].append(request_time)
 
 		for city in cities.keys():
 			# Get city temperature data
@@ -43,18 +43,4 @@ for i in range(30):
 
 			# Append Boston temp
 			max_temp = r.json()['daily']['data'][0]['temperatureMax']
-			temp_results[city].append(max_temp)
-
-		# Get New York
-		#r = requests.get(get_forecast_data("New York", request_time))
-
-		# Append NY temp
-		#max_temp_ny = r.json()['daily']['data'][0]['temperatureMax']
-		#ny_temp.append(max_temp_ny)
-
-
-# Send request
-#r = requests.get(get_forecast_data("Boston",thirty_days_ago))
-
-#max_temperature = r.json()['daily']['data'][0]['temperatureMax']
-#print max_temperature
+			max_temp_results[city].append(max_temp)
